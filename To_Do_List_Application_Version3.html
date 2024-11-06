@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced To Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        h1 {
+            color: #5c6bc0;
+            text-align: center;
+        }
+        #controls, #search-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        #controls button, #search-bar input {
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+        }
+        #controls button {
+            background-color: #5c6bc0;
+            color: white;
+            cursor: pointer;
+        }
+        #controls button:hover {
+            background-color: #3949ab;
+        }
+        #todoList {
+            list-style-type: none;
+            padding: 0;
+            max-width: 600px;
+            margin: auto;
+        }
+        li {
+            padding: 15px;
+            background-color: white;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        li.done span {
+            text-decoration: line-through;
+            color: grey;
+        }
+        button.action-btn {
+            background-color: #5c6bc0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        button.action-btn:hover {
+            background-color: #3949ab;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Enhanced To Do List</h1>
+
+<div id="controls">
+    <input type="text" id="task" placeholder="New Task">
+    <input type="date" id="dueDate">
+    <select id="recurrence">
+        <option value="none">No Recurrence</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+    </select>
+    <button onclick="addItem()">Add Item</button>
+    <button onclick="sortList()">Sort by Due Date</button>
+</div>
+
+<div id="search-bar">
+    <input type="text" id="searchInput" placeholder="Search tasks..." oninput="searchTasks()">
+</div>
+
+<ul id="todoList"></ul>
+
+<script>
+    let todoItems = [];
+
+    // Display To-Do List
+    function displayList(items = todoItems) {
+        const list = document.getElementById('todoList');
+        list.innerHTML = '';
+        items.forEach((item, index) => {
+            const listItem = document.createElement('li');
+            listItem.className = item.done ? 'done' : '';
+            listItem.innerHTML = `
+                <span>${index + 1}. ${item.task} - Due: ${item.dueDate || 'N/A'} - Recurs: ${item.recurrence}</span>
+                <div>
+                    <button class="action-btn" onclick="toggleDone(${index})">${item.done ? 'Undo' : 'Mark Done'}</button>
+                    <button class="action-btn" onclick="editItem(${index})">Edit</button>
+                    <button class="action-btn" onclick="deleteItem(${index})">Delete</button>
+                </div>
+            `;
+            list.appendChild(listItem);
+        });
+    }
+
+    // Add Item to To-Do List
+    function addItem() {
+        const task = document.getElementById('task').value;
+        const dueDate = document.getElementById('dueDate').value;
+        const recurrence = document.getElementById('recurrence').value;
+
+        if (task) {
+            todoItems.push({ task, dueDate, recurrence, done: false });
+            document.getElementById('task').value = '';
+            displayList();
+            setReminder(todoItems.length - 1);
+        }
+    }
+
+    // Delete Item from To-Do List
+    function deleteItem(index) {
+        todoItems.splice(index, 1);
+        displayList();
+    }
+
+    // Edit an Item
+    function editItem(index) {
+        const newTask = prompt("Edit your task:", todoItems[index].task);
+        if (newTask !== null) {
+            todoItems[index].task = newTask;
+            displayList();
+        }
+    }
+
+    // Toggle Task Completion
+    function toggleDone(index) {
+        todoItems[index].done = !todoItems[index].done;
+        displayList();
+    }
+
+    // Sort List by Due Date
+    function sortList() {
+        todoItems.sort((a, b) => (a.dueDate > b.dueDate ? 1 : -1));
+        displayList();
+    }
+
+    // Search Tasks
+    function searchTasks() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filteredItems = todoItems.filter(item => item.task.toLowerCase().includes(query));
+        displayList(filteredItems);
+    }
+
+    // Set Reminder Notifications
+    function setReminder(index) {
+        const task = todoItems[index];
+        if (task.dueDate) {
+            const dueDate = new Date(task.dueDate);
+            const currentDate = new Date();
+            const timeUntilDue = dueDate - currentDate;
+
+            if (timeUntilDue > 0) {
+                setTimeout(() => {
+                    showNotification(task.task, task.dueDate);
+                }, timeUntilDue);
+            }
+        }
+    }
+
+    // Show Browser Notification
+    function showNotification(task, dueDate) {
+        if (Notification.permission === 'granted') {
+            new Notification("Reminder", {
+                body: `Task "${task}" is due on ${dueDate}`,
+                icon: "https://cdn-icons-png.flaticon.com/512/1077/1077976.png"
+            });
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    new Notification("Reminder", {
+                        body: `Task "${task}" is due on ${dueDate}`,
+                        icon: "https://cdn-icons-png.flaticon.com/512/1077/1077976.png"
+                    });
+                }
+            });
+        }
+    }
+
+    // Request Notification Permission
+    document.addEventListener('DOMContentLoaded', () => {
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+    });
+</script>
+
+</body>
+</html>
